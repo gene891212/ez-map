@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Imgur 圖片上傳</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 20px auto;
+            text-align: center;
+        }
+
+        input,
+        textarea,
+        button {
+            width: 100%;
+            margin: 10px 0;
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        #preview {
+            max-width: 100%;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>Imgur 匿名圖片上傳</h2>
+
+    <input type="file" id="fileInput" accept="image/*">
+    <input type="text" id="titleInput" placeholder="輸入圖片標題">
+    <textarea id="descriptionInput" placeholder="輸入圖片描述"></textarea>
+
+    <button onclick="uploadImage()">上傳圖片</button>
+    <img id="preview" style="display: none;" referrerpolicy="no-referrer" alt="Imgur Image">
+
+    <!-- <img id="preview" style="display: none;"> -->
+    <p id="result"></p>
+
+    <script>
+        const clientId = '50166df8bcf9289';
+        const uploadUrl = 'https://api.imgur.com/3/image';
+
+        function uploadImage() {
+            const fileInput = document.getElementById('fileInput');
+            const title = document.getElementById('titleInput').value;
+            const description = document.getElementById('descriptionInput').value;
+            const result = document.getElementById('result');
+            const preview = document.getElementById('preview');
+
+            if (!fileInput.files.length) {
+                alert("請選擇一張圖片！");
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('image', file);
+            formData.append('type', 'file');
+            formData.append('title', title);
+            formData.append('description', description);
+
+            fetch(uploadUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Client-ID ${clientId}`
+                },
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        result.innerHTML = `上傳成功！<br> <a href="${data.data.link}" target="_blank">查看圖片</a>`;
+                        preview.src = data.data.link;
+                        preview.style.display = 'block';
+                    } else {
+                        result.innerHTML = "上傳失敗，請重試！";
+                    }
+                })
+                .catch(error => {
+                    console.error("上傳錯誤:", error);
+                    result.innerHTML = "發生錯誤，請稍後再試！";
+                });
+        }
+    </script>
+
+</body>
+
+</html>
