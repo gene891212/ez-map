@@ -11,23 +11,19 @@
     <div class="a4-container pdf-page" v-for="(attraction, index) in selectedAttractions"
       :style="{ 'background-image': `url(${attraction.backgroundImage})` }">
       <div class="avoid-break">
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <h1>{{ index + 1 }}. {{ attraction.name }}</h1>
-          </el-col>
-          <el-col :span="24">
-            <p>{{ attraction.address }}</p>
-          </el-col>
+        <h1>{{ index + 1 }}. {{ attraction.name }}</h1>
+        <p style="margin-bottom: 20px;">{{ attraction.address }}</p>
+        <el-row :gutter="60">
           <el-col :span="12">
             <img :src="attraction.coverImage" class="cover-image" />
           </el-col>
           <el-col :span="12" v-for="(field, index) in attraction.fields" :key="index">
             <el-row :gutter="20">
-              <el-col :span="12">
-                <h2>{{ index }} {{ field.name }}</h2>
+              <el-col :span="10">
+                <h2><span>{{ field.name }}</span></h2>
                 <p>{{ field.value }}</p>
               </el-col>
-              <el-col :span="12">
+              <el-col :span="14">
                 <div class="image-container">
                   <img v-if="field.image" :src="field.image" class="image" />
                 </div>
@@ -63,7 +59,7 @@ const goBack = () => {
 .a4-container {
   width: 297mm;
   height: 210mm;
-  padding: 10mm;
+  padding: 20mm;
   background: white;
   border: 1px solid #ddd;
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
@@ -80,9 +76,26 @@ const goBack = () => {
   page-break-inside: avoid;
 }
 
-h1 {
-  margin: 0
+h1, h2 {
+  margin-top: 0;
+  margin-bottom: 10px;
 }
+
+p {
+  margin: 0;
+  overflow-wrap: break-word;
+}
+
+span {
+  padding: 5px 5px;
+  /* background-color: hsl(205deg, 20%, 94%); */
+  background-color: hsl(33.96deg 100% 67.98%);
+  border-radius: 15px;
+}
+
+/* .el-col {
+  margin-bottom: 20px;
+} */
 
 .cover-image {
   width: 100%;
