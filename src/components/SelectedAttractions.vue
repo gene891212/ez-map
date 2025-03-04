@@ -87,28 +87,28 @@ p {
 }
 
 span {
-  padding: 5px 5px;
+  padding: 5px 10px;
   /* background-color: hsl(205deg, 20%, 94%); */
   background-color: hsl(33.96deg 100% 67.98%);
   border-radius: 15px;
 }
 
-/* .el-col {
+.el-col-12 {
   margin-bottom: 20px;
-} */
+}
 
 .cover-image {
   width: 100%;
-  height: 200px;
+  height: 170px;
   object-fit: contain;
   object-position: center;
 }
 
 .image {
-  max-width: 200px;
-  max-height: 200px;
-  object-fit: cover;
-  border-radius: 15px;
+  max-height: 170px;
+  width: 100%;
+  object-fit: contain;
+  object-position: center;
 }
 
 @page {
