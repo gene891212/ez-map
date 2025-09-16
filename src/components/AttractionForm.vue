@@ -69,10 +69,13 @@
 import { ref, watch } from "vue";
 import { Upload, Check, Delete, Loading, CircleCheck, CircleCheckFilled } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
+import { uploadImage, validateImageFile, extractPathFromUrl, deleteImage } from '../services/imageUploadService.js';
+import { database } from '../firebase.js';
+import { ref as dbRef, update } from 'firebase/database';
+import { useRoute } from 'vue-router';
 
-const clientId = "50166df8bcf9289";
-const uploadUrl = "https://api.imgur.com/3/image";
 const isLoading = ref(false);
+const route = useRoute();
 
 const props = defineProps({
   attraction: Object,
@@ -95,49 +98,123 @@ const map = {
 
 // image upload
 const handleBeforeUpload = (file) => {
-  const isLt2M = file.size / 1024 / 1024 < 5;
-  if (!isLt2M) ElMessage.error("上傳圖片大小不能超過 5MB!");
-  isLoading.value = true;
-  return isLt2M;
-};
-
-const customUploadRequest = async (option, index) => {
-  const formData = new FormData();
-  formData.append("image", option.file);
   try {
-    const response = await fetch(uploadUrl, {
-      method: "POST",
-      headers: { "Authorization": `Client-ID ${clientId}` },
-      body: formData,
-    });
-    const result = await response.json();
-    console.log("Upload result:", result);
-    if (result.success) {
-      if (index >= 0) {
-        props.attraction.fields[index].image = result.data.link;
-      } else {
-        if (index === -1) props.attraction.coverImage = result.data.link;
-        if (index === -2) props.attraction.backgroundImage = result.data.link;
-      }
-      // option.onSuccess(result, option.file);
-      ElMessage.success("圖片上傳成功！");
-    } else {
-      option.onError(result);
-      ElMessage.error(`圖片上傳失敗: ${result.data.error}`);
-    }
-    isLoading.value = false;
+    validateImageFile(file, 5);
+    isLoading.value = true;
+    return true;
   } catch (error) {
-    option.onError(error);
-    ElMessage.error("上傳失敗，請檢查網路或稍後再試！");
+    ElMessage.error(error.message);
+    return false;
   }
 };
 
-const removeImage = (index) => {
-  if (index >= 0) {
-    props.attraction.fields[index].image = null;
-  } else {
-    if (index === -1) props.attraction.coverImage = null;
-    if (index === -2) props.attraction.backgroundImage = null;
+// 自動保存到 Firebase Database
+const saveToDatabase = async () => {
+  try {
+    if (route.params.id && props.attraction) {
+      const attractionRef = dbRef(database, `attractions/${route.params.id}`);
+      await update(attractionRef, props.attraction.toObject());
+      console.log("圖片更新已自動保存到資料庫");
+    }
+  } catch (error) {
+    console.error("自動保存失敗:", error);
+  }
+};
+
+const customUploadRequest = async (option, index) => {
+  try {
+    // 決定上傳路徑
+    let uploadPath = 'attractions/';
+    if (index === -1) uploadPath = 'attractions/cover/';
+    else if (index === -2) uploadPath = 'attractions/background/';
+    else uploadPath = 'attractions/fields/';
+
+    // 如果有舊圖片，先刪除
+    await deleteOldImage(index);
+
+    // 上傳新圖片
+    const result = await uploadImage(option.file, uploadPath);
+    
+    if (result.success) {
+      // 更新對應的圖片 URL
+      if (index >= 0) {
+        // 更新 fields 中的圖片
+        props.attraction.fields[index].image = result.url;
+      } else {
+        if (index === -1) {
+          // 更新封面圖片
+          props.attraction.coverImage = result.url;
+        }
+        if (index === -2) {
+          // 更新背景圖片
+          props.attraction.backgroundImage = result.url;
+        }
+      }
+      
+      ElMessage.success("圖片上傳成功！");
+      console.log("Updated attraction:", props.attraction);
+      
+      // 自動保存到資料庫
+      await saveToDatabase();
+    }
+    
+    isLoading.value = false;
+  } catch (error) {
+    console.error('Upload error:', error);
+    ElMessage.error(error.message || "上傳失敗，請稍後再試！");
+    isLoading.value = false;
+  }
+};
+
+// 刪除舊圖片的輔助函數
+const deleteOldImage = async (index) => {
+  try {
+    let oldImageUrl = null;
+    
+    if (index >= 0) {
+      oldImageUrl = props.attraction.fields[index].image;
+    } else if (index === -1) {
+      oldImageUrl = props.attraction.coverImage;
+    } else if (index === -2) {
+      oldImageUrl = props.attraction.backgroundImage;
+    }
+    
+    if (oldImageUrl) {
+      const imagePath = extractPathFromUrl(oldImageUrl);
+      if (imagePath) {
+        await deleteImage(imagePath);
+      }
+    }
+  } catch (error) {
+    console.error('Error deleting old image:', error);
+    // 不需要顯示錯誤訊息，因為這只是清理動作
+  }
+};
+
+const removeImage = async (index) => {
+  try {
+    // 先刪除 Firebase Storage 中的圖片
+    await deleteOldImage(index);
+    
+    // 清除 URL
+    if (index >= 0) {
+      props.attraction.fields[index].image = null;
+    } else {
+      if (index === -1) {
+        props.attraction.coverImage = null;
+      }
+      if (index === -2) {
+        props.attraction.backgroundImage = null;
+      }
+    }
+    
+    ElMessage.success("圖片已刪除");
+    
+    // 自動保存到資料庫
+    await saveToDatabase();
+  } catch (error) {
+    console.error('Error removing image:', error);
+    ElMessage.error("刪除圖片失敗");
   }
 };
 

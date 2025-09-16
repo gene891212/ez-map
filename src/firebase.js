@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getDatabase } from 'firebase/database';
 import { getAuth } from 'firebase/auth';
+import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
     apiKey: "AIzaSyC_EIhWeQn4dfNfS6kk5PwiMUt8JRkKGZ4",
@@ -18,6 +19,9 @@ const app = initializeApp(firebaseConfig);
 // 初始化 Realtime Database
 const database = getDatabase(app);
 
+// 初始化 Storage
+const storage = getStorage(app);
+
 const auth = getAuth();
 
-export { database, auth };
+export { database, auth, storage };
